@@ -1,0 +1,12 @@
+<h1>Messagerie</h1>
+
+<ul>
+  <%= for message <- @messages do %>
+    <li><%= message %></li>
+  <% end %>
+</ul>
+
+<form phx-submit="send_message">
+  <input type="text" name="message" placeholder="Tapez votre message" />
+  <button type="submit">Envoyer</button>
+</form>
