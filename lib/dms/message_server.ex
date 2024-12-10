@@ -12,7 +12,7 @@ defmodule Dms.MessageServer do
   end
 
   def handle_cast({:send_message, message}, state) do
-    {:noreply, [message | state]}  # Ajouter le message à l'état
+    {:noreply, state ++ [message]}  # Ajouter le message à la fin de la liste
   end
 
   def handle_call(:get_messages, _from, state) do
