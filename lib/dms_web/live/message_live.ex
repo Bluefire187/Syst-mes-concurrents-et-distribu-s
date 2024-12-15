@@ -41,7 +41,7 @@ defmodule DmsWeb.MessageLive do
           <strong>Message :</strong> <%= message.content %> <br>
           <strong>De :</strong> <%= message.sender_id %> <br>
           <strong>À :</strong> <%= message.receiver_id %> <br>
-          <strong>Envoyé le :</strong> <%= message.inserted_at %>
+          <strong>Envoyé le :</strong> <%= message.inserted_at |> Timex.format!("{0D}-{0M}-{YYYY} {h24}:{m}:{s}") %>
         </li>
       <% end %>
     </ul>
