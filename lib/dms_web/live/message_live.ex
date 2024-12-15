@@ -2,26 +2,47 @@ defmodule DmsWeb.MessageLive do
   use DmsWeb, :live_view
 
   def mount(_params, _session, socket) do
-    messages = Dms.MessageServer.get_messages()  # Récupérer les messages
-    {:ok, assign(socket, :messages, messages)}  # Assigner les messages à la vue
+    # Simule un utilisateur connecté (à remplacer par une vraie authentification)
+    user_id = 1
+
+    # Récupérer les messages depuis GenServer (cache)
+    messages = Dms.MessageServer.get_messages(user_id)
+
+    {:ok, assign(socket, messages: messages, user_id: user_id)}
   end
 
-  def handle_event("send_message", %{"message" => message}, socket) do
-    Dms.MessageServer.send_message(message)  # Envoi du message au serveur
+  def handle_event("send_message", %{"message" => content}, socket) do
+    IO.puts("Handling send_message event with content: #{content}")
 
-    # Mettre à jour la liste des messages après l'envoi
-    messages = Dms.MessageServer.get_messages()
-    {:noreply, assign(socket, :messages, messages)}
+    sender_id = socket.assigns[:user_id] || 1
+    receiver_id = 2
+
+    case Dms.MessageServer.send_message(content, sender_id, receiver_id) do
+      {:ok, _message} ->
+        IO.puts("Message sent successfully")
+        messages = Dms.MessageServer.get_messages(sender_id)
+        {:noreply, assign(socket, :messages, messages)}
+
+      {:error, changeset} ->
+        IO.puts("Failed to send message: #{inspect(changeset.errors)}")
+        {:noreply, socket}
+    end
   end
 
-  # La fonction render pour afficher le template HTML directement
+
+
   def render(assigns) do
     ~H"""
     <h1>Messagerie</h1>
 
     <ul>
-      <%= for message <- @messages do %>
-        <li><%= message %></li>
+      <%= for message <- Enum.reverse(@messages) do %>
+        <li>
+          <strong>Message :</strong> <%= message.content %> <br>
+          <strong>De :</strong> <%= message.sender_id %> <br>
+          <strong>À :</strong> <%= message.receiver_id %> <br>
+          <strong>Envoyé le :</strong> <%= message.inserted_at %>
+        </li>
       <% end %>
     </ul>
 

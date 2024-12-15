@@ -1,31 +1,65 @@
 defmodule Dms.MessageServer do
   use GenServer
+  alias Dms.Repo
+  alias Dms.Message
+  import Ecto.Query  # Import nécessaire pour utiliser `from`
 
   # Fonction pour démarrer le GenServer
-  def start_link(initial_state) do
-    GenServer.start_link(__MODULE__, initial_state, name: __MODULE__)
+  def start_link(_args) do
+    GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  # Callbacks
-  def init(state) do
-    {:ok, state}
+  # Initialisation du cache
+  def init(_args) do
+    # Charger les messages récents depuis PostgreSQL dans le cache
+    messages = Repo.all(from m in Message, order_by: [desc: m.inserted_at], limit: 50)
+    {:ok, messages}
   end
 
-  def handle_cast({:send_message, message}, state) do
-    {:noreply, state ++ [message]}  # Ajouter le message à la fin de la liste
+  # Fonction pour envoyer un message (sauvegarde en base + ajout au cache)
+  def send_message(content, sender_id, receiver_id) do
+    IO.puts("Sending message: #{content} from user #{sender_id} to user #{receiver_id}")
+
+    changeset = Message.changeset(%Message{}, %{
+      content: content,
+      sender_id: sender_id,
+      receiver_id: receiver_id
+    })
+
+    case Repo.insert(changeset) do
+      {:ok, message} ->
+        IO.puts("Message saved: #{inspect(message)}")
+        GenServer.cast(__MODULE__, {:cache_message, message})
+        {:ok, message}
+      {:error, changeset} ->
+        IO.puts("Failed to save message: #{inspect(changeset.errors)}")
+        {:error, changeset}
+    end
   end
 
-  def handle_call(:get_messages, _from, state) do
-    {:reply, state, state}  # Retourner les messages stockés dans l'état
+
+  # Fonction pour récupérer les messages pour un utilisateur
+  def get_messages(user_id) do
+    messages = GenServer.call(__MODULE__, {:get_messages, user_id})
+    IO.puts("Messages fetched for user #{user_id}: #{inspect(messages)}")
+    messages
   end
 
-  # Fonction publique pour obtenir les messages
-  def get_messages do
-    GenServer.call(__MODULE__, :get_messages)
+
+  # Callbacks GenServer
+
+  # Ajouter un message au cache
+  def handle_cast({:cache_message, message}, state) do
+    IO.puts("Caching message: #{inspect(message)}")
+    new_state = [message | state] |> Enum.take(50)  # Limiter le cache à 50 messages
+    {:noreply, new_state}
   end
 
-  # Fonction pour envoyer un message
-  def send_message(message) do
-    GenServer.cast(__MODULE__, {:send_message, message})
+  # Récupérer les messages du cache pour un utilisateur
+  def handle_call({:get_messages, user_id}, _from, state) do
+    # Filtrer les messages du cache par sender_id ou receiver_id
+    user_messages = Enum.filter(state, fn m -> m.sender_id == user_id or m.receiver_id == user_id end)
+    IO.puts("Messages fetched for user #{user_id}: #{inspect(user_messages)}")
+    {:reply, user_messages, state}
   end
 end
