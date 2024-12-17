@@ -8,6 +8,11 @@ defmodule DmsWeb.MessageLive do
     # Récupérer les messages depuis GenServer (cache)
     messages = Dms.MessageServer.get_messages(user_id)
 
+    # S'abonner aux événements de nouveaux messages
+    if connected?(socket) do
+      Phoenix.PubSub.subscribe(Dms.PubSub, "messages:updates")
+    end
+
     {:ok, assign(socket, messages: messages, user_id: user_id)}
   end
 
@@ -29,6 +34,13 @@ defmodule DmsWeb.MessageLive do
     end
   end
 
+  def handle_info({:new_message, message}, socket) do
+    # Ajouter le nouveau message à la liste des messages existants
+    messages = [message | socket.assigns.messages]
+
+    # Mettre à jour l'assignation : LiveView se rafraîchira automatiquement
+    {:noreply, assign(socket, :messages, messages)}
+  end
 
 
   def render(assigns) do

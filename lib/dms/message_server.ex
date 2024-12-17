@@ -29,6 +29,8 @@ defmodule Dms.MessageServer do
     case Repo.insert(changeset) do
       {:ok, message} ->
         IO.puts("Message saved: #{inspect(message)}")
+        # Diffuser l'événement via PubSub
+        Phoenix.PubSub.broadcast(Dms.PubSub, "messages:updates", {:new_message, message})
         GenServer.cast(__MODULE__, {:cache_message, message})
         {:ok, message}
       {:error, changeset} ->
