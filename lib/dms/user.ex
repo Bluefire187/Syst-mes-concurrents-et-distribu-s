@@ -13,5 +13,6 @@ defmodule Dms.User do
     user
     |> cast(attrs, [:username])
     |> validate_required([:username])
+    |> unique_constraint(:username)
   end
 end

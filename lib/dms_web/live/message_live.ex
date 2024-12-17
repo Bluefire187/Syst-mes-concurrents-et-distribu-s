@@ -2,11 +2,11 @@ defmodule DmsWeb.MessageLive do
   use DmsWeb, :live_view
 
   def mount(_params, _session, socket) do
-    # Simule un utilisateur connecté (à remplacer par une vraie authentification)
-    user_id = 1
+    # L'utilisateur n'est pas encore connecté, donc user_id est nil
+    user_id = nil
 
-    # Récupérer les messages depuis GenServer (cache)
-    messages = Dms.MessageServer.get_messages(user_id)
+    # Initialise une liste de messages vide par défaut
+    messages = []
 
     # S'abonner aux événements de nouveaux messages
     if connected?(socket) do
@@ -15,6 +15,7 @@ defmodule DmsWeb.MessageLive do
 
     {:ok, assign(socket, messages: messages, user_id: user_id)}
   end
+
 
   def handle_event("send_message", %{"message" => content}, socket) do
     IO.puts("Handling send_message event with content: #{content}")
@@ -34,6 +35,20 @@ defmodule DmsWeb.MessageLive do
     end
   end
 
+  def handle_event("set_username", %{"username" => username}, socket) do
+    case Dms.Accounts.get_or_create_user(username) do
+      {:ok, user} ->
+        # Récupérer les messages une fois connecté
+        messages = Dms.MessageServer.get_messages(user.id)
+
+        {:noreply, assign(socket, user_id: user.id, messages: messages)}
+
+      {:error, _reason} ->
+        {:noreply, socket}
+    end
+  end
+
+
 
   def handle_info({:new_message, message, sender_socket_id}, socket) do
     # Ignorer le message si le socket ID est celui de l'expéditeur
@@ -49,23 +64,32 @@ defmodule DmsWeb.MessageLive do
 
   def render(assigns) do
     ~H"""
-    <h1>Messagerie</h1>
+    <%= if @user_id do %>
+      <h1>Messagerie</h1>
 
-    <ul>
-      <%= for message <- Enum.reverse(@messages) do %>
-        <li>
-          <strong>Message :</strong> <%= message.content %> <br>
-          <strong>De :</strong> <%= message.sender_id %> <br>
-          <strong>À :</strong> <%= message.receiver_id %> <br>
-          <strong>Envoyé le :</strong> <%= message.inserted_at |> Timex.format!("{0D}-{0M}-{YYYY} {h24}:{m}:{s}") %>
-        </li>
-      <% end %>
-    </ul>
+      <ul>
+        <%= for message <- Enum.reverse(@messages) do %>
+          <li>
+            <strong>Message :</strong> <%= message.content %> <br>
+            <strong>De :</strong> <%= message.sender_id %> <br>
+            <strong>À :</strong> <%= message.receiver_id %> <br>
+            <strong>Envoyé le :</strong> <%= message.inserted_at |> Timex.format!("{0D}-{0M}-{YYYY} {h24}:{m}:{s}") %>
+          </li>
+        <% end %>
+      </ul>
 
-    <form phx-submit="send_message">
-      <input type="text" name="message" placeholder="Tapez votre message" />
-      <button type="submit">Envoyer</button>
-    </form>
+      <form phx-submit="send_message">
+        <input type="text" name="message" placeholder="Tapez votre message" />
+        <button type="submit">Envoyer</button>
+      </form>
+    <% else %>
+      <h1>Connexion</h1>
+      <form phx-submit="set_username">
+        <input type="text" name="username" placeholder="Entrez votre nom d'utilisateur" />
+        <button type="submit">Se connecter</button>
+      </form>
+    <% end %>
     """
+
   end
 end
