@@ -1,39 +1,45 @@
 defmodule DmsWeb.MessageLive do
   use DmsWeb, :live_view
+  alias Dms.Repo
+
 
   def mount(_params, _session, socket) do
-    # L'utilisateur n'est pas encore connecté, donc user_id est nil
-    user_id = nil
-
-    # Initialise une liste de messages vide par défaut
-    messages = []
-
-    # S'abonner aux événements de nouveaux messages
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Dms.PubSub, "messages:updates")
+      # S'abonner au chat général
+      Phoenix.PubSub.subscribe(Dms.PubSub, "chat:general")
     end
 
-    {:ok, assign(socket, messages: messages, user_id: user_id)}
+    # Récupérer les anciens messages pour le chat général (user_id = nil)
+    messages = Dms.MessageServer.get_messages(nil)
+
+    {:ok, assign(socket, messages: messages, user_id: nil)}
   end
+
+
+
 
 
   def handle_event("send_message", %{"message" => content}, socket) do
     IO.puts("Handling send_message event with content: #{content}")
 
     sender_id = socket.assigns[:user_id] || 1
-    receiver_id = 2
 
-    case Dms.MessageServer.send_message(content, sender_id, receiver_id, socket.id) do
-      {:ok, _message} ->
+    # Créer le message (enregistrer dans la DB si nécessaire)
+    case Dms.MessageServer.send_message(content, sender_id, nil, socket.id) do
+      {:ok, message} ->
         IO.puts("Message sent successfully")
-        messages = Dms.MessageServer.get_messages(sender_id)
-        {:noreply, assign(socket, :messages, messages)}
+
+        # Diffuser le message à tous les abonnés du chat général
+        Phoenix.PubSub.broadcast(Dms.PubSub, "chat:general", {:new_message, message, socket.id})
+
+        {:noreply, socket}
 
       {:error, changeset} ->
         IO.puts("Failed to send message: #{inspect(changeset.errors)}")
         {:noreply, socket}
     end
   end
+
 
   def handle_event("set_username", %{"username" => username}, socket) do
     case Dms.Accounts.get_or_create_user(username) do
@@ -50,15 +56,25 @@ defmodule DmsWeb.MessageLive do
 
 
 
-  def handle_info({:new_message, message, sender_socket_id}, socket) do
-    # Ignorer le message si le socket ID est celui de l'expéditeur
-    if sender_socket_id != socket.id do
-      messages = [message | socket.assigns.messages]
-      {:noreply, assign(socket, :messages, messages)}
-    else
-      {:noreply, socket}
-    end
+  def handle_info({:new_message, message, _sender_socket_id}, socket) do
+    # Forcer le préchargement de :user au cas où
+    message_with_user = Repo.preload(message, :user)
+
+    # Vérifier si le message existe déjà dans la liste
+    messages =
+      if Enum.find(socket.assigns.messages, fn m -> m.id == message_with_user.id end) do
+        # Si le message existe, ne rien changer
+        socket.assigns.messages
+      else
+        # Ajouter le message à la liste des messages existants
+        [message_with_user | socket.assigns.messages]
+      end
+
+    {:noreply, assign(socket, :messages, messages)}
   end
+
+
+
 
 
 
@@ -71,8 +87,7 @@ defmodule DmsWeb.MessageLive do
         <%= for message <- Enum.reverse(@messages) do %>
           <li>
             <strong>Message :</strong> <%= message.content %> <br>
-            <strong>De :</strong> <%= message.sender_id %> <br>
-            <strong>À :</strong> <%= message.receiver_id %> <br>
+            <strong>De :</strong> <%= message.user.username %> <br>
             <strong>Envoyé le :</strong> <%= message.inserted_at |> Timex.format!("{0D}-{0M}-{YYYY} {h24}:{m}:{s}") %>
           </li>
         <% end %>

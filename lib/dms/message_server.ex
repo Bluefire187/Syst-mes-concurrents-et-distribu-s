@@ -23,17 +23,21 @@ defmodule Dms.MessageServer do
     changeset = Message.changeset(%Message{}, %{
       content: content,
       sender_id: sender_id,
-      receiver_id: receiver_id
+      user_id: sender_id,
+      receiver_id: nil
     })
 
     case Repo.insert(changeset) do
       {:ok, message} ->
         IO.puts("Message saved: #{inspect(message)}")
 
-        # Diffuser l'événement avec le socket_id
-        Phoenix.PubSub.broadcast(Dms.PubSub, "messages:updates", {:new_message, message, socket_id})
+        # Précharger l'association :user pour inclure l'utilisateur
+        message_with_user = Repo.preload(message, :user)
 
-        GenServer.cast(__MODULE__, {:cache_message, message})
+        # Diffuser à tous les abonnés du chat général
+        Phoenix.PubSub.broadcast(Dms.PubSub, "chat:general", {:new_message, message_with_user, socket_id})
+
+        GenServer.cast(__MODULE__, {:cache_message, message_with_user})
         {:ok, message}
 
       {:error, changeset} ->
@@ -48,9 +52,25 @@ defmodule Dms.MessageServer do
   def get_messages(user_id) do
     messages = GenServer.call(__MODULE__, {:get_messages, user_id})
 
-    IO.puts("Messages fetched for user #{user_id}: #{inspect(messages)}")
-    messages
+    # Précharger l'association :user pour chaque message
+    messages_with_users = Enum.map(messages, &Repo.preload(&1, :user))
+
+    IO.puts("Messages fetched for user #{user_id || "general"}: #{inspect(messages_with_users)}")
+    messages_with_users
   end
+
+  # Adapter le handle_call pour gérer le cas user_id = nil
+  def handle_call({:get_messages, user_id}, _from, state) do
+    user_messages =
+      Enum.filter(state, fn m ->
+        user_id == nil or m.receiver_id == nil or m.sender_id == user_id or m.receiver_id == user_id
+      end)
+
+    {:reply, user_messages, state}
+  end
+
+
+
 
 
 
@@ -63,18 +83,5 @@ defmodule Dms.MessageServer do
     new_state = [message | state] |> Enum.take(50)  # Limiter le cache à 50 messages
     {:noreply, new_state}
   end
-
-  # Récupérer les messages du cache pour un utilisateur
-  def handle_call({:get_messages, user_id}, _from, state) do
-    # Filtrer les messages par utilisateur
-    user_messages =
-      Enum.filter(state, fn m ->
-        m.sender_id == user_id or m.receiver_id == user_id
-      end)
-
-    IO.puts("Messages fetched for user #{user_id}: #{inspect(user_messages)}")
-    {:reply, user_messages, state}
-  end
-
 
 end

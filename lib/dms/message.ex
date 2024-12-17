@@ -14,8 +14,8 @@ defmodule Dms.Message do
   @doc false
   def changeset(message, attrs) do
     message
-    |> cast(attrs, [:content, :sender_id, :receiver_id])
-    |> validate_required([:content, :sender_id, :receiver_id])
+    |> cast(attrs, [:content, :sender_id, :receiver_id, :user_id])
+    |> validate_required([:content, :sender_id])
     |> validate_length(:content, min: 1, max: 500)
   end
 end
