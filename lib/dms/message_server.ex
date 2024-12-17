@@ -17,7 +17,7 @@ defmodule Dms.MessageServer do
   end
 
   # Fonction pour envoyer un message (sauvegarde en base + ajout au cache)
-  def send_message(content, sender_id, receiver_id) do
+  def send_message(content, sender_id, receiver_id, socket_id) do
     IO.puts("Sending message: #{content} from user #{sender_id} to user #{receiver_id}")
 
     changeset = Message.changeset(%Message{}, %{
@@ -29,15 +29,19 @@ defmodule Dms.MessageServer do
     case Repo.insert(changeset) do
       {:ok, message} ->
         IO.puts("Message saved: #{inspect(message)}")
-        # Diffuser l'événement via PubSub
-        Phoenix.PubSub.broadcast(Dms.PubSub, "messages:updates", {:new_message, message})
+
+        # Diffuser l'événement avec le socket_id
+        Phoenix.PubSub.broadcast(Dms.PubSub, "messages:updates", {:new_message, message, socket_id})
+
         GenServer.cast(__MODULE__, {:cache_message, message})
         {:ok, message}
+
       {:error, changeset} ->
         IO.puts("Failed to save message: #{inspect(changeset.errors)}")
         {:error, changeset}
     end
   end
+
 
 
   # Fonction pour récupérer les messages pour un utilisateur

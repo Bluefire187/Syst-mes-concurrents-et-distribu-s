@@ -22,7 +22,7 @@ defmodule DmsWeb.MessageLive do
     sender_id = socket.assigns[:user_id] || 1
     receiver_id = 2
 
-    case Dms.MessageServer.send_message(content, sender_id, receiver_id) do
+    case Dms.MessageServer.send_message(content, sender_id, receiver_id, socket.id) do
       {:ok, _message} ->
         IO.puts("Message sent successfully")
         messages = Dms.MessageServer.get_messages(sender_id)
@@ -34,13 +34,17 @@ defmodule DmsWeb.MessageLive do
     end
   end
 
-  def handle_info({:new_message, message}, socket) do
-    # Ajouter le nouveau message à la liste des messages existants
-    messages = [message | socket.assigns.messages]
 
-    # Mettre à jour l'assignation : LiveView se rafraîchira automatiquement
-    {:noreply, assign(socket, :messages, messages)}
+  def handle_info({:new_message, message, sender_socket_id}, socket) do
+    # Ignorer le message si le socket ID est celui de l'expéditeur
+    if sender_socket_id != socket.id do
+      messages = [message | socket.assigns.messages]
+      {:noreply, assign(socket, :messages, messages)}
+    else
+      {:noreply, socket}
+    end
   end
+
 
 
   def render(assigns) do
