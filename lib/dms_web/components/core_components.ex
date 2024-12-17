@@ -17,7 +17,8 @@ defmodule DmsWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  import DmsWeb.Gettext
+  use Gettext, backend: DmsWeb.Gettext
+
 
   @doc """
   Renders a modal.

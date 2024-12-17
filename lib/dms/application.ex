@@ -10,6 +10,7 @@ defmodule Dms.Application do
     children = [
       DmsWeb.Telemetry,
       Dms.Repo,
+      Dms.Vault,
       {DNSCluster, query: Application.get_env(:dms, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: Dms.PubSub},
       # Start the Finch HTTP client for sending emails

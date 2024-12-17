@@ -41,9 +41,12 @@ defmodule Dms.MessageServer do
   # Fonction pour récupérer les messages pour un utilisateur
   def get_messages(user_id) do
     messages = GenServer.call(__MODULE__, {:get_messages, user_id})
+
     IO.puts("Messages fetched for user #{user_id}: #{inspect(messages)}")
     messages
   end
+
+
 
 
   # Callbacks GenServer
@@ -57,9 +60,15 @@ defmodule Dms.MessageServer do
 
   # Récupérer les messages du cache pour un utilisateur
   def handle_call({:get_messages, user_id}, _from, state) do
-    # Filtrer les messages du cache par sender_id ou receiver_id
-    user_messages = Enum.filter(state, fn m -> m.sender_id == user_id or m.receiver_id == user_id end)
+    # Filtrer les messages par utilisateur
+    user_messages =
+      Enum.filter(state, fn m ->
+        m.sender_id == user_id or m.receiver_id == user_id
+      end)
+
     IO.puts("Messages fetched for user #{user_id}: #{inspect(user_messages)}")
     {:reply, user_messages, state}
   end
+
+
 end

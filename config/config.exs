@@ -53,6 +53,16 @@ config :tailwind,
     cd: Path.expand("../assets", __DIR__)
   ]
 
+
+config :dms, Dms.Vault,
+  ciphers: [
+    default: {Cloak.Ciphers.AES.GCM,
+    tag: "AES.GCM.V1",
+    key: Base.decode64!("WMkEzX4yG1k73ffbOO9vy+xIPRIjV8fpDWpdKGkNVWM="),
+    iv_length: 12}
+  ]
+
+
 # Configures Elixir's Logger
 config :logger, :console,
   format: "$time $metadata[$level] $message\n",

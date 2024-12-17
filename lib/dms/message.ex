@@ -3,7 +3,7 @@ defmodule Dms.Message do
   import Ecto.Changeset
 
   schema "messages" do
-    field :content, :string
+    field :content, Dms.Encrypted.Binary
     field :sender_id, :integer
     field :receiver_id, :integer
     belongs_to :user, Dms.User
