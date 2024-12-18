@@ -20,12 +20,18 @@ ul {
   }
   
   /* Messages envoyés par l'utilisateur connecté */
+  /* Messages envoyés par l'utilisateur connecté */
   .message-sent {
     background-color: #d1e7dd; /* Vert clair */
-    text-align: right;
-    margin-left: auto; /* Aligne à droite */
+    text-align: left; /* Alignement du texte à l'intérieur */
+    margin-left: auto; /* Aligne le message entier à droite */
     border-top-right-radius: 0; /* Bordure spécifique */
+    border-radius: 10px;
+    padding: 10px; /* Ajoute un peu d'espace autour du texte */
+    max-width: 60%; /* Largeur maximale */
+    word-wrap: break-word; /* Gérer les longs mots */
   }
+  
   
   /* Messages reçus d'autres utilisateurs */
   .message-received {
