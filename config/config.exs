@@ -58,7 +58,7 @@ config :dms, Dms.Vault,
   ciphers: [
     default: {Cloak.Ciphers.AES.GCM,
     tag: "AES.GCM.V1",
-    key: Base.decode64!("WMkEzX4yG1k73ffbOO9vy+xIPRIjV8fpDWpdKGkNVWM="),
+    key: Base.decode64!(System.get_env("CLOAK_KEY")),
     iv_length: 12}
   ]
 
