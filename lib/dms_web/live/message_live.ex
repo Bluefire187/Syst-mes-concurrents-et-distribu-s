@@ -85,13 +85,14 @@ defmodule DmsWeb.MessageLive do
 
       <ul>
         <%= for message <- Enum.reverse(@messages) do %>
-          <li>
-            <strong>Message :</strong> <%= message.content %> <br>
+          <li class={if message.user.id == @user_id, do: "message-sent", else: "message-received"}>
             <strong>De :</strong> <%= message.user.username %> <br>
+            <strong>Message :</strong> <%= message.content %> <br>
             <strong>Envoyé le :</strong> <%= message.inserted_at |> Timex.format!("{0D}-{0M}-{YYYY} {h24}:{m}:{s}") %>
           </li>
         <% end %>
       </ul>
+
 
       <form phx-submit="send_message">
         <input type="text" name="message" placeholder="Tapez votre message" />
