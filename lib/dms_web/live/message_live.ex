@@ -54,6 +54,28 @@ defmodule DmsWeb.MessageLive do
     end
   end
 
+  def handle_event("load_older_messages", _params, socket) do
+    oldest_message = List.first(socket.assigns.messages)  # Le plus ancien message actuellement affiché
+
+    if oldest_message do
+      # Charger les messages plus anciens via le GenServer
+      older_messages = GenServer.call(Dms.MessageServer, {:load_older_messages, oldest_message.inserted_at})
+
+      # Filtrer les doublons
+      new_messages = Enum.reject(older_messages, fn msg ->
+        Enum.any?(socket.assigns.messages, fn existing_msg -> existing_msg.id == msg.id end)
+      end)
+
+      # Ajouter les anciens messages à la **fin** de la liste
+    {:noreply, assign(socket, messages: socket.assigns.messages ++ new_messages)}
+    else
+      {:noreply, socket}
+    end
+  end
+
+
+
+
 
 
   def handle_info({:new_message, message, _sender_socket_id}, socket) do
@@ -82,6 +104,7 @@ defmodule DmsWeb.MessageLive do
     ~H"""
     <%= if @user_id do %>
       <h1>Messagerie</h1>
+      <button phx-click="load_older_messages">Afficher les messages plus anciens</button>
 
       <ul>
         <%= for message <- Enum.reverse(@messages) do %>

@@ -69,6 +69,22 @@ defmodule Dms.MessageServer do
     {:reply, user_messages, state}
   end
 
+  def handle_call({:load_older_messages, oldest_message_timestamp}, _from, state) do
+    # Charger les messages plus anciens directement depuis PostgreSQL
+    older_messages = Repo.all(
+      from m in Message,
+      where: m.inserted_at < ^oldest_message_timestamp,  # Condition pour les anciens messages
+      order_by: [desc: m.inserted_at],
+      limit: 50
+    )
+    |> Repo.preload(:user)  # Précharger l'association :user
+
+    # Répondre avec les anciens messages sans les stocker dans le cache
+    {:reply, older_messages, state}
+  end
+
+
+
 
 
 
