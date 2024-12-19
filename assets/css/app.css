@@ -2,15 +2,11 @@
 @import "tailwindcss/components";
 @import "tailwindcss/utilities";
 
-/* This file is for your main application CSS */
-
-/* Styles pour la liste des messages */
 ul {
     list-style: none;
     padding: 0;
   }
   
-  /* Style commun pour les messages */
   li {
     padding: 10px;
     margin: 5px 0;
@@ -19,25 +15,23 @@ ul {
     word-wrap: break-word;
   }
   
-  /* Messages envoyés par l'utilisateur connecté */
-  /* Messages envoyés par l'utilisateur connecté */
   .message-sent {
-    background-color: #d1e7dd; /* Vert clair */
-    text-align: left; /* Alignement du texte à l'intérieur */
-    margin-left: auto; /* Aligne le message entier à droite */
-    border-top-right-radius: 0; /* Bordure spécifique */
+    background-color: #d1e7dd; 
+    text-align: left; 
+    margin-left: auto; 
+    border-top-right-radius: 0; 
     border-radius: 10px;
-    padding: 10px; /* Ajoute un peu d'espace autour du texte */
-    max-width: 60%; /* Largeur maximale */
-    word-wrap: break-word; /* Gérer les longs mots */
+    padding: 10px; 
+    max-width: 60%; 
+    word-wrap: break-word; 
   }
   
   
-  /* Messages reçus d'autres utilisateurs */
+
   .message-received {
-    background-color: #f8d7da; /* Rouge clair */
+    background-color: #f8d7da; 
     text-align: left;
-    margin-right: auto; /* Aligne à gauche */
-    border-top-left-radius: 0; /* Bordure spécifique */
+    margin-right: auto; 
+    border-top-left-radius: 0; 
   }
   
