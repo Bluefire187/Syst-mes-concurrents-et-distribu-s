@@ -11,6 +11,7 @@ defmodule Dms.MessageServer do
 
   # Initialisation du cache
   def init(_args) do
+    Phoenix.PubSub.subscribe(Dms.PubSub, "chat:general")
     # Charger les messages récents depuis PostgreSQL dans le cache
     messages = Repo.all(from m in Message, order_by: [desc: m.inserted_at], limit: 50)
     {:ok, messages}
@@ -89,6 +90,11 @@ defmodule Dms.MessageServer do
   end
 
 
+  def handle_info({:new_message, message, _socket_id}, state) do
+    IO.puts("Received message on #{Node.self()}: #{inspect(message)}")
+    new_state = [message | state] |> Enum.take(50)
+    {:noreply, new_state}
+  end
 
 
 
